@@ -1,0 +1,595 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Sala de Reunião</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Open+Sans:wght@400;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: mesma identidade do dashboard Grupo GPS (fila de atendimento). Fundo cinza claro, cartões com contorno fino escuro, títulos em caixa alta pesada, azul marinho e azul vivo, menu lateral em gaveta com degradê marinho. Duas telas: status da sala e agendamento. */
+:root{
+  color-scheme:light;
+  --bg:#DDDDDD; --surface:#E9E9EA; --surface-2:#D4D6DA; --fg:#0A0A0A; --muted:#454B57;
+  --line:#1A1A1A; --hair:#B3B6BC;
+  --navy:#001A6B; --blue:#0038E0;
+  --accent:#001A6B; --on-accent:#FFFFFF;
+  --now-bg:#001A6B; --now-fg:#FFFFFF;
+  --focus:#0038E0; --bad:#B42318; --ok:#0B7A3B; --on-a:#FFFFFF;
+  --busy:#C9CCD3; --range:#C7D3FF;
+  --a0:#001A6B; --a1:#0038E0; --a2:#0E7490; --a3:#B45309; --a4:#7C3AED; --a5:#BE123C;
+  --side-1:#0F1F2E; --side-2:#06305A;
+  --display:'Archivo Black','Arial Black',Arial,sans-serif;
+  --body:'Open Sans',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0A1220; --surface:#0F1B2E; --surface-2:#162743; --fg:#EAF0FA; --muted:#A3B1C8;
+    --line:#3A4F73; --hair:#25375A;
+    --navy:#8FA9FF; --blue:#6C8DFF;
+    --accent:#2F5BFF; --on-accent:#FFFFFF;
+    --now-bg:#0038E0; --now-fg:#FFFFFF;
+    --focus:#9CC2FF; --bad:#FF8A7A; --ok:#5BE08A; --on-a:#0A1220;
+    --busy:#1E2D4A; --range:#1B3A8A;
+    --a0:#8FA9FF; --a1:#5C86FF; --a2:#4FD1E8; --a3:#F5A524; --a4:#C39BFF; --a5:#FF7A9C;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0A1220; --surface:#0F1B2E; --surface-2:#162743; --fg:#EAF0FA; --muted:#A3B1C8;
+  --line:#3A4F73; --hair:#25375A;
+  --navy:#8FA9FF; --blue:#6C8DFF;
+  --accent:#2F5BFF; --on-accent:#FFFFFF;
+  --now-bg:#0038E0; --now-fg:#FFFFFF;
+  --focus:#9CC2FF; --bad:#FF8A7A; --ok:#5BE08A; --on-a:#0A1220;
+  --busy:#1E2D4A; --range:#1B3A8A;
+  --a0:#8FA9FF; --a1:#5C86FF; --a2:#4FD1E8; --a3:#F5A524; --a4:#C39BFF; --a5:#FF7A9C;
+  color-scheme:dark;
+}
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{
+  margin:0; background:var(--bg); color:var(--fg); font:15px/1.45 var(--body);
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:0;
+}
+button,input{font-family:inherit}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.wrap{max-width:1400px;margin:0 auto;padding-block:16px 56px}
+.muted{color:var(--muted)}
+
+/* Cabeçalho */
+.top{display:flex;align-items:center;gap:16px 24px;flex-wrap:wrap;padding-bottom:20px}
+.top-left{display:flex;align-items:center;gap:16px}
+.menu-btn{appearance:none;cursor:pointer;display:inline-flex;align-items:center;gap:10px;min-height:48px;padding:10px 16px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--fg);font:700 14px var(--body)}
+.logo{display:flex;align-items:baseline;gap:6px;line-height:1;white-space:nowrap}
+.logo span{font:400 18px var(--body);letter-spacing:.01em;color:var(--muted)}
+.logo b{font:400 38px var(--display);letter-spacing:-.01em;color:var(--fg)}
+.titulo{flex:1 1 320px;min-width:0;text-align:center}
+.titulo h1{margin:0;font:400 clamp(22px,3.4vw,42px)/1.1 var(--display);text-transform:uppercase;text-wrap:balance}
+.titulo h1 .n{color:var(--navy)}
+.titulo p{margin:6px 0 0;font:600 14px var(--body);letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.titulo p b{color:var(--blue)}
+.top::after{content:"";flex:0 1 160px}
+
+/* Gaveta */
+.scrim{position:fixed;inset:0;z-index:30;background:rgba(0,10,25,.55)}
+.drawer{position:fixed;z-index:31;top:0;bottom:0;left:0;width:min(300px,86vw);display:flex;flex-direction:column;gap:14px;
+  padding:calc(24px + env(safe-area-inset-top,0px)) 20px calc(24px + env(safe-area-inset-bottom,0px)) max(20px,env(safe-area-inset-left,0px));
+  background:linear-gradient(180deg,var(--side-1),var(--side-2));color:#fff;border-radius:0 32px 32px 0;overflow-y:auto}
+.drawer .logo span{color:#C9D5E6}
+.drawer .logo b{color:#fff}
+.drawer-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px}
+.drawer-close{appearance:none;cursor:pointer;width:44px;height:44px;border-radius:12px;border:1px solid #000;background:rgba(0,0,0,.35);color:#fff;font-size:20px}
+.nav-item{appearance:none;cursor:pointer;text-align:center;min-height:64px;padding:14px 16px;border-radius:18px;border:1px solid #000;background:rgba(0,0,0,.28);color:#fff;font:400 15px var(--display);letter-spacing:.02em}
+.nav-item[aria-current="page"]{background:#001228;box-shadow:inset 0 0 0 2px #3F6BFF}
+.drawer .nav-item:focus-visible,.drawer-close:focus-visible{outline-color:#fff}
+
+.aviso{background:var(--navy);color:var(--bg);padding:12px 16px;border-radius:10px;margin-bottom:16px;font-weight:700}
+h2.sec{margin:0 0 12px;font:400 16px/1.2 var(--display);text-transform:uppercase;letter-spacing:.01em}
+.eyebrow{display:block;margin-bottom:4px;font:700 12px var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px}
+.empty{padding:20px 0;color:var(--muted)}
+.err{margin:12px 0 0;color:var(--bad);font-weight:700}
+
+.btn{appearance:none;cursor:pointer;min-height:48px;padding:10px 20px;border-radius:10px;border:1px solid var(--line);background:var(--surface-2);color:var(--fg);font:700 15px var(--body);white-space:nowrap}
+.btn.primary{background:var(--accent);color:var(--on-accent);border-color:transparent}
+.btn.sm{min-height:40px;padding:8px 14px;font-size:14px}
+.btn.danger{color:var(--bad)}
+.btn.big{width:100%;min-height:68px;font:400 20px var(--display);text-transform:uppercase;letter-spacing:.01em}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+
+/* Tela: sala agora */
+.status{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:24px;align-items:start}
+.status>*{min-width:0}
+.now{display:flex;flex-direction:column;gap:8px;padding:clamp(22px,3vw,40px);border-radius:18px;background:var(--surface);color:var(--fg);border:1px solid var(--line)}
+.now.occ{background:var(--now-bg);color:var(--now-fg);border-color:transparent}
+.now .lbl{font:400 14px var(--display);letter-spacing:.1em;text-transform:uppercase;opacity:.8}
+.now .big{display:flex;align-items:center;gap:14px;font:400 clamp(44px,8vw,104px)/1 var(--display);text-transform:uppercase}
+.now .big i{flex:none;width:.34em;height:.34em;border-radius:50%;background:var(--ok)}
+.now.occ .big i{background:#fff}
+.now.off .big{font-size:clamp(30px,5vw,60px)}
+.now.off .big i{background:var(--muted)}
+.now .nm{font:400 clamp(22px,3vw,40px)/1.1 var(--display);text-transform:uppercase;overflow-wrap:break-word;text-wrap:balance}
+.now .ar{font:600 clamp(16px,1.8vw,22px)/1.3 var(--body);overflow-wrap:break-word}
+.now .cta{margin-top:12px;align-self:flex-start}
+.now.occ .btn{background:#fff;color:#001A6B;border-color:transparent}
+
+.tl{margin-top:18px}
+.tl-bar{position:relative;height:44px;border-radius:10px;background:color-mix(in srgb,currentColor 12%,transparent);overflow:hidden}
+.tl-blk{position:absolute;top:0;bottom:0;display:grid;place-items:center;background:var(--ac);color:var(--on-a);font:400 14px var(--display);border-left:2px solid var(--bg);min-width:2px;overflow:hidden}
+.now.occ .tl-blk{border-left-color:var(--now-bg)}
+.tl-now{position:absolute;top:-4px;bottom:-4px;width:3px;background:var(--bad);border-radius:2px}
+.tl-ticks{position:relative;height:20px;margin-top:6px;font:500 12px var(--mono);font-variant-numeric:tabular-nums}
+.tl-ticks span{position:absolute;transform:translateX(-50%);opacity:.8}
+.tl-ticks span:first-child{transform:none}
+.tl-ticks span:last-child{transform:translateX(-100%)}
+
+.day-h{margin:20px 0 4px;font:400 14px var(--display);text-transform:uppercase;letter-spacing:.02em}
+.day-h:first-of-type{margin-top:0}
+.day-h small{font:600 13px var(--body);letter-spacing:.03em;color:var(--muted);text-transform:none}
+.list{list-style:none;margin:0;padding:0}
+.mt{border-top:1px solid var(--hair)}
+.day-h+.list>.mt:first-child{border-top:0}
+.mt.done{opacity:.55}
+.mt-head{appearance:none;cursor:pointer;width:100%;display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:6px 16px;align-items:center;text-align:left;padding:14px 4px;background:none;border:0;color:var(--fg)}
+.mt-time{display:flex;flex-direction:column;min-width:64px;font:500 15px/1.25 var(--mono);font-variant-numeric:tabular-nums}
+.mt-time i{font-style:normal;color:var(--muted)}
+.mt-main{display:flex;align-items:center;gap:12px;min-width:0}
+.mt-main strong{display:block;overflow-wrap:anywhere}
+.sub{font-size:13px;color:var(--muted);overflow-wrap:anywhere}
+.area-letter{flex:none;display:grid;place-items:center;width:44px;height:44px;border-radius:10px;background:var(--ac);color:var(--on-a);font:400 20px var(--display)}
+.area-letter.sm{width:38px;height:38px;font-size:17px}
+.badge{padding:3px 8px;border-radius:6px;background:var(--blue);color:#fff;font:700 11px var(--body);letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
+.badge.dur{background:var(--surface-2);color:var(--fg);border:1px solid var(--hair);font:500 12px var(--mono);letter-spacing:0;text-transform:none}
+.mt-side{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.mt-detail{margin:0 4px 14px;padding:14px 16px;background:var(--bg);border:1px solid var(--hair);border-radius:12px;display:grid;gap:10px}
+.mt-detail dl{margin:0;display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px 16px}
+.mt-detail dt{font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+.mt-detail dd{margin:0;font-weight:700;overflow-wrap:anywhere}
+.mt-actions{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+
+/* Tela: marcar reunião */
+.book{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start}
+.book>*{min-width:0}
+.book .full{grid-column:1 / -1}
+.cal-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+.cal-title{font:400 20px/1.1 var(--display);text-transform:uppercase;text-align:center}
+.cal-nav{appearance:none;cursor:pointer;width:48px;height:48px;border-radius:12px;border:1px solid var(--line);background:var(--surface-2);color:var(--fg);font:700 20px var(--body)}
+.cal-nav:disabled{opacity:.35;cursor:not-allowed}
+.cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.cal-dow{padding:6px 0;text-align:center;font:700 12px var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.cal-dow.wk{opacity:.5}
+.day{appearance:none;cursor:pointer;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;aspect-ratio:1 / 1;min-height:44px;padding:4px;border-radius:12px;border:1px solid var(--hair);background:var(--bg);color:var(--fg);font:700 16px var(--body);font-variant-numeric:tabular-nums}
+.day:hover:not(:disabled):not([aria-pressed="true"]){border-color:var(--fg)}
+.day.wk{background:repeating-linear-gradient(135deg,transparent 0 6px,color-mix(in srgb,var(--muted) 14%,transparent) 6px 8px);color:var(--muted)}
+.day:disabled{cursor:not-allowed;opacity:.45}
+.day.today{box-shadow:inset 0 0 0 2px var(--blue)}
+.day[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);border-color:transparent}
+.day .dots{display:flex;gap:3px;height:6px}
+.day .dots i{width:6px;height:6px;border-radius:50%;background:var(--blue)}
+.day[aria-pressed="true"] .dots i{background:#fff}
+.cal-hint{margin:14px 0 0;font-size:13px;color:var(--muted)}
+
+.slots{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:8px}
+.slot{appearance:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:52px;padding:6px;border-radius:10px;border:1px solid var(--hair);background:var(--bg);color:var(--fg);font:500 15px var(--mono);font-variant-numeric:tabular-nums}
+.slot small{font:600 10px var(--body);letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.slot:hover:not(:disabled):not([aria-pressed="true"]){border-color:var(--fg)}
+.slot:disabled{cursor:not-allowed;background:var(--busy);color:var(--muted);border-color:transparent}
+.slot.busy{text-decoration:line-through}
+.slot.busy small{text-decoration:none}
+.slot.in{background:var(--range);border-color:transparent}
+.slot[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);border-color:transparent}
+.slot[aria-pressed="true"] small{color:inherit;opacity:.85}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{appearance:none;cursor:pointer;display:inline-flex;align-items:center;min-height:44px;padding:8px 16px;color:var(--fg);background:var(--bg);border:1px solid var(--hair);border-radius:999px;font:700 14px var(--body);white-space:nowrap}
+.chip:disabled{opacity:.4;cursor:not-allowed;text-decoration:line-through}
+.chip[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);border-color:transparent}
+.sep{height:1px;margin:18px 0;background:var(--hair);border:0}
+
+.areas{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,210px),1fr));gap:10px}
+.area{appearance:none;text-align:left;cursor:pointer;display:flex;align-items:center;gap:12px;min-height:68px;padding:10px 14px;color:var(--fg);background:var(--bg);border:2px solid var(--hair);border-radius:14px}
+.area[aria-pressed="true"]{border-color:var(--fg);box-shadow:0 0 0 2px var(--fg);background:color-mix(in srgb,var(--ac) 14%,var(--surface))}
+.area-name{font:400 14px/1.2 var(--display);text-transform:uppercase;overflow-wrap:anywhere}
+.field{display:flex;flex-direction:column;gap:6px;margin-top:16px}
+.field label{font:700 12px var(--body);letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+.field input{width:100%;min-height:52px;padding:10px 14px;font:600 16px var(--body);color:var(--fg);background:var(--bg);border:2px solid var(--hair);border-radius:10px}
+.field input:focus{border-color:var(--blue)}
+.resumo{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px 24px;margin-top:20px;padding:16px 18px;background:var(--bg);border:1px solid var(--hair);border-radius:12px}
+.resumo strong{display:block;font:400 18px/1.25 var(--display);text-transform:uppercase;text-wrap:balance}
+.resumo .btn{flex:0 1 320px}
+
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:40;max-width:min(92vw,520px);padding:12px 18px;border-radius:10px;background:var(--fg);color:var(--bg);font-weight:700;text-align:center}
+
+@media (max-width:1000px){
+  .status,.book{grid-template-columns:minmax(0,1fr)}
+  .top::after{display:none}
+}
+@media (max-width:560px){
+  .logo b{font-size:30px}
+  .titulo{flex-basis:100%;text-align:left}
+  .mt-head{grid-template-columns:auto minmax(0,1fr)}
+  .mt-side{grid-column:1 / -1;flex-direction:row;align-items:center}
+  .slots{grid-template-columns:repeat(auto-fill,minmax(76px,1fr))}
+  .cal-grid{gap:4px}
+  .day{font-size:15px;border-radius:10px}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <div class="top-left">
+      <button id="btn-menu" class="menu-btn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="drawer">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+        Menu
+      </button>
+      <div class="logo" aria-label="Grupo GPS"><span>GRUPO</span><b>GPS</b></div>
+    </div>
+    <div class="titulo">
+      <h1>Sala de <span class="n">Reunião</span></h1>
+      <p><b id="tela-nome"></b> · <span id="data-hoje"></span></p>
+    </div>
+  </header>
+  <div id="aviso" class="aviso" hidden></div>
+  <main id="app"></main>
+</div>
+
+<div id="scrim" class="scrim" hidden></div>
+<nav id="drawer" class="drawer" aria-label="Telas" hidden>
+  <div class="drawer-head">
+    <div class="logo"><span>GRUPO</span><b>GPS</b></div>
+    <button id="btn-close" class="drawer-close" type="button" aria-label="Fechar menu">✕</button>
+  </div>
+  <button class="nav-item" type="button" data-go="status">Sala agora</button>
+  <button class="nav-item" type="button" data-go="book">Marcar reunião</button>
+</nav>
+<div id="toast" class="toast" role="status" hidden></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+/* ============================================================
+   CONFIGURAÇÃO DO FIREBASE
+   Cole aqui os dados do seu app web:
+   Console do Firebase > Configurações do projeto > Seus aplicativos > Configuração do SDK
+   ============================================================ */
+var FIREBASE_CONFIG = {
+  apiKey: "COLE_AQUI_A_API_KEY",
+  authDomain: "SEU-PROJETO.firebaseapp.com",
+  projectId: "SEU-PROJETO",
+  storageBucket: "SEU-PROJETO.firebasestorage.app",
+  messagingSenderId: "000000000000",
+  appId: "1:000000000000:web:0000000000000000"
+};
+</script>
+<script>
+(function(){
+  var OPEN=8*60, CLOSE=18*60, STEP=30;
+  var SETORES=['Administrativo','Financeiro','Comercial','Recursos Humanos','Tecnologia','Operações','Diretoria'];
+  var DURS=[30,60,90,120,180,240,300,360];
+  var MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  var DOW=['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
+
+  var db=null, canWrite=true, localMode=false, meetings=[], localSeq=0;
+  var now0=new Date();
+  var state={screen:'status',y:now0.getFullYear(),m:now0.getMonth(),date:null,start:null,dur:60,setor:null,outro:false,custom:'',assunto:'',openId:null,confirmId:null};
+  var $=function(id){return document.getElementById(id)};
+  var app=$('app');
+
+  function pad(n){return String(n).padStart(2,'0')}
+  function key(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
+  function fromKey(k){var p=k.split('-');return new Date(+p[0],+p[1]-1,+p[2])}
+  function fmt(min){return pad(Math.floor(min/60))+':'+pad(min%60)}
+  function durLabel(m){if(m<60)return m+' min';var h=Math.floor(m/60),r=m%60;return r?h+'h'+pad(r):h+'h'}
+  function isWk(d){var g=d.getDay();return g===0||g===6}
+  function minNow(){var n=new Date();return n.getHours()*60+n.getMinutes()}
+  function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+  function longDate(d){var s=d.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'});return s.charAt(0).toUpperCase()+s.slice(1)}
+  function created(iso){var d=new Date(iso);if(isNaN(d))return 'data não registrada';return pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear()+' às '+pad(d.getHours())+':'+pad(d.getMinutes())}
+  function colorIdx(name){var i=SETORES.indexOf(name);if(i>=0)return i%6;var h=0;for(var k=0;k<name.length;k++)h=(h*31+name.charCodeAt(k))>>>0;return h%6}
+  function acStyle(name){return '--ac:var(--a'+colorIdx(name)+')'}
+  function letter(name){return esc((name||'?').trim().charAt(0).toUpperCase())}
+  function overlap(a,b){return a.start<b.end&&b.start<a.end}
+  function onDay(k){return meetings.filter(function(x){return x.date===k}).sort(function(a,b){return a.start-b.start})}
+
+  var toastT;
+  function toast(msg){var t=$('toast');t.textContent=msg;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(function(){t.hidden=true},3600)}
+
+  /* ---------- navegação ---------- */
+  var NOMES={status:'Sala agora',book:'Marcar reunião'};
+  function go(s){
+    state.screen=s;state.confirmId=null;
+    closeDrawer();
+    $('tela-nome').textContent=NOMES[s];
+    document.querySelectorAll('.nav-item').forEach(function(b){if(b.dataset.go===s)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});
+    if(s==='status')renderStatus();else buildBook();
+    window.scrollTo(0,0);
+  }
+  function openDrawer(){$('scrim').hidden=false;$('drawer').hidden=false;$('btn-menu').setAttribute('aria-expanded','true');$('btn-close').focus()}
+  function closeDrawer(){$('scrim').hidden=true;$('drawer').hidden=true;$('btn-menu').setAttribute('aria-expanded','false')}
+  $('btn-menu').addEventListener('click',openDrawer);
+  $('btn-close').addEventListener('click',function(){closeDrawer();$('btn-menu').focus()});
+  $('scrim').addEventListener('click',closeDrawer);
+  document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!$('drawer').hidden){closeDrawer();$('btn-menu').focus()}});
+  $('drawer').addEventListener('click',function(e){var b=e.target.closest('[data-go]');if(b)go(b.dataset.go)});
+
+  /* ---------- tela: sala agora ---------- */
+  function timeline(todayList,showNow){
+    var span=CLOSE-OPEN, h='<div class="tl"><div class="tl-bar" aria-hidden="true">';
+    todayList.forEach(function(x){
+      var l=(x.start-OPEN)/span*100,w=(x.end-x.start)/span*100;
+      h+='<div class="tl-blk" style="left:'+l+'%;width:'+w+'%;'+acStyle(x.setor)+'">'+(w>7?letter(x.setor):'')+'</div>';
+    });
+    if(showNow){var n=minNow();if(n>=OPEN&&n<=CLOSE)h+='<div class="tl-now" style="left:calc('+((n-OPEN)/span*100)+'% - 1px)"></div>'}
+    h+='</div><div class="tl-ticks" aria-hidden="true">';
+    for(var t=OPEN;t<=CLOSE;t+=120)h+='<span style="left:'+((t-OPEN)/span*100)+'%">'+pad(t/60)+'h</span>';
+    return h+'</div></div>';
+  }
+
+  function nextAfter(){
+    var n=new Date(),k=key(n),m=minNow();
+    return meetings.filter(function(x){return x.date>k||(x.date===k&&x.end>m)}).sort(function(a,b){return a.date===b.date?a.start-b.start:(a.date<b.date?-1:1)})[0];
+  }
+
+  function nowPanel(){
+    var n=new Date(),k=key(n),m=minNow(),list=onDay(k),wk=isWk(n),inHours=!wk&&m>=OPEN&&m<CLOSE;
+    var cur=inHours?list.filter(function(x){return x.start<=m&&m<x.end})[0]:null;
+    var h;
+    if(cur){
+      h='<section class="now occ" aria-live="polite"><div class="lbl">Sala de reunião agora</div>'
+       +'<div class="big"><i></i>Ocupada</div>'
+       +'<div class="nm">'+esc(cur.setor)+'</div>'
+       +'<div class="ar">'+fmt(cur.start)+' às '+fmt(cur.end)+' · '+durLabel(cur.end-cur.start)+' · termina em '+durLabel(cur.end-m)+'</div>';
+    }else if(inHours){
+      var nx=list.filter(function(x){return x.start>m})[0];
+      h='<section class="now free" aria-live="polite"><div class="lbl">Sala de reunião agora</div>'
+       +'<div class="big"><i></i>Livre</div>'
+       +'<div class="ar">'+(nx?'Próxima reunião hoje às '+fmt(nx.start)+', do setor '+esc(nx.setor)+'.':'Sem mais reuniões marcadas para hoje.')+'</div>';
+    }else{
+      var p=nextAfter();
+      h='<section class="now off" aria-live="polite"><div class="lbl">Sala de reunião agora</div>'
+       +'<div class="big"><i></i>Fora do horário</div>'
+       +'<div class="ar">A sala é agendada de segunda a sexta, das 8h às 18h.'+(p?' Próxima reunião: '+longDate(fromKey(p.date)).toLowerCase()+', às '+fmt(p.start)+' ('+esc(p.setor)+').':'')+'</div>';
+    }
+    if(!wk)h+=timeline(list,true);
+    h+='<button class="btn primary cta" type="button" data-act="goto-book">Marcar reunião</button></section>';
+    return h;
+  }
+
+  function listPanel(){
+    var n=new Date(),k=key(n),m=minNow();
+    var up=meetings.filter(function(x){return x.date>=k}).sort(function(a,b){return a.date===b.date?a.start-b.start:(a.date<b.date?-1:1)});
+    var h='<section class="card" aria-labelledby="h-prox"><h2 class="sec" id="h-prox">Reuniões marcadas</h2>';
+    if(!up.length)return h+'<p class="empty">Nenhuma reunião marcada. A sala está disponível para agendamento.</p></section>';
+    var tom=new Date(n);tom.setDate(tom.getDate()+1);var tk=key(tom),cur=null;
+    up.forEach(function(x){
+      if(x.date!==cur){
+        if(cur!==null)h+='</ul>';
+        cur=x.date;
+        var tag=x.date===k?'Hoje':(x.date===tk?'Amanhã':'');
+        h+='<h3 class="day-h">'+(tag?tag+' · ':'')+'<small>'+esc(longDate(fromKey(x.date)))+'</small></h3><ul class="list">';
+      }
+      var done=x.date===k&&x.end<=m, live=x.date===k&&x.start<=m&&m<x.end, open=state.openId===x.id;
+      h+='<li class="mt'+(done?' done':'')+'"><button class="mt-head" type="button" data-act="toggle" data-id="'+esc(x.id)+'" aria-expanded="'+open+'">'
+        +'<span class="mt-time"><b>'+fmt(x.start)+'</b><i>'+fmt(x.end)+'</i></span>'
+        +'<span class="mt-main"><span class="area-letter sm" style="'+acStyle(x.setor)+'">'+letter(x.setor)+'</span><span><strong>'+esc(x.setor)+'</strong><span class="sub">Duração de '+durLabel(x.end-x.start)+'</span></span></span>'
+        +'<span class="mt-side">'+(live?'<span class="badge">Em andamento</span>':(done?'<span class="badge dur">Encerrada</span>':''))+'<span class="badge dur">'+durLabel(x.end-x.start)+'</span></span></button>';
+      if(open){
+        h+='<div class="mt-detail"><dl><dt>Setor</dt><dd>'+esc(x.setor)+'</dd><dt>Horário</dt><dd>'+fmt(x.start)+' às '+fmt(x.end)+' ('+durLabel(x.end-x.start)+')</dd>'
+          +(x.assunto?'<dt>Assunto</dt><dd>'+esc(x.assunto)+'</dd>':'')
+          +'<dt>Agendada em</dt><dd>'+esc(created(x.createdAt))+'</dd></dl>'
+          +'<div class="mt-actions">'
+          +(state.confirmId===x.id
+            ?'<span class="sub">Cancelar esta reunião?</span><button class="btn sm danger" type="button" data-act="del-yes" data-id="'+esc(x.id)+'">Sim, cancelar</button><button class="btn sm" type="button" data-act="del-no">Manter</button>'
+            :'<button class="btn sm danger" type="button" data-act="del" data-id="'+esc(x.id)+'">Cancelar reunião</button>')
+          +'</div></div>';
+      }
+      h+='</li>';
+    });
+    return h+'</ul></section>';
+  }
+
+  function renderStatus(){
+    if(state.screen!=='status')return;
+    app.innerHTML='<div class="status"><div>'+nowPanel()+'</div><div>'+listPanel()+'</div></div>';
+  }
+
+  /* ---------- tela: marcar reunião ---------- */
+  function buildBook(){
+    app.innerHTML='<div class="book">'
+      +'<section class="card" aria-labelledby="h-dia"><span class="eyebrow">Passo 1</span><h2 class="sec" id="h-dia">Escolha o dia</h2><div id="cal"></div></section>'
+      +'<section class="card" aria-labelledby="h-hora"><span class="eyebrow">Passo 2</span><h2 class="sec" id="h-hora">Horário e duração</h2><div id="times"></div></section>'
+      +'<section class="card full" aria-labelledby="h-setor"><span class="eyebrow">Passo 3</span><h2 class="sec" id="h-setor">Setor e assunto</h2><div id="setores"></div>'
+      +'<div class="field"><label for="assunto">Assunto (opcional)</label><input id="assunto" type="text" maxlength="80" autocomplete="off" placeholder="Ex.: Alinhamento semanal"></div>'
+      +'<div id="resumo" class="resumo"></div><p id="book-err" class="err" role="alert" hidden></p></section></div>';
+    $('assunto').value=state.assunto;
+    drawCal();drawTimes();drawSetores();drawResumo();
+  }
+
+  function drawCal(){
+    var el=$('cal');if(!el)return;
+    var today=new Date();today.setHours(0,0,0,0);
+    var first=new Date(state.y,state.m,1), lead=(first.getDay()+6)%7, days=new Date(state.y,state.m+1,0).getDate();
+    var minM=today.getFullYear()*12+today.getMonth(), curM=state.y*12+state.m;
+    var h='<div class="cal-head"><button class="cal-nav" type="button" data-act="prev" aria-label="Mês anterior"'+(curM<=minM?' disabled':'')+'>‹</button>'
+      +'<div class="cal-title" aria-live="polite">'+MESES[state.m]+' '+state.y+'</div>'
+      +'<button class="cal-nav" type="button" data-act="next" aria-label="Próximo mês"'+(curM>=minM+11?' disabled':'')+'>›</button></div><div class="cal-grid">';
+    DOW.forEach(function(d,i){h+='<div class="cal-dow'+(i>4?' wk':'')+'">'+d+'</div>'});
+    for(var i=0;i<lead;i++)h+='<div></div>';
+    for(var d=1;d<=days;d++){
+      var dt=new Date(state.y,state.m,d),k=key(dt),wk=isWk(dt),past=dt<today,cnt=onDay(k).length,sel=state.date===k;
+      var off=wk||past;
+      h+='<button class="day'+(wk?' wk':'')+(key(today)===k?' today':'')+'" type="button" data-act="day" data-k="'+k+'" aria-pressed="'+sel+'"'+(off?' disabled':'')
+        +' aria-label="'+d+' de '+MESES[state.m]+(wk?', fim de semana, indisponível':(cnt?', '+cnt+' reunião(ões)':''))+'">'
+        +'<span>'+d+'</span><span class="dots">'+(cnt&&!off?new Array(Math.min(cnt,3)+1).join('<i></i>'):'')+'</span></button>';
+    }
+    h+='</div><p class="cal-hint">Só é possível agendar de segunda a sexta. Pontos azuis indicam dias que já têm reunião.</p>';
+    el.innerHTML=h;
+  }
+
+  function slotInfo(k,start){
+    var seg={start:start,end:start+STEP}, hit=onDay(k).filter(function(x){return overlap(seg,x)})[0];
+    if(hit)return {st:'busy',who:hit.setor};
+    if(k===key(new Date())&&start<minNow())return {st:'past'};
+    return {st:'free'};
+  }
+  function maxDur(k,start){
+    var lim=CLOSE;onDay(k).forEach(function(x){if(x.start>=start&&x.start<lim)lim=x.start});
+    return lim-start;
+  }
+
+  function drawTimes(){
+    var el=$('times');if(!el)return;
+    if(!state.date){el.innerHTML='<p class="empty">Escolha um dia no calendário para ver os horários disponíveis.</p>';return}
+    var h='<p class="sub" style="margin:0 0 12px"><b>'+esc(longDate(fromKey(state.date)))+'</b> · salas livres entre 08:00 e 18:00</p><div class="slots" role="group" aria-label="Horário de início">';
+    var md=state.start!=null?maxDur(state.date,state.start):0;
+    for(var t=OPEN;t<CLOSE;t+=STEP){
+      var s=slotInfo(state.date,t), sel=state.start===t, inr=state.start!=null&&t>state.start&&t<state.start+state.dur;
+      h+='<button class="slot'+(s.st==='busy'?' busy':'')+(inr?' in':'')+'" type="button" data-act="slot" data-t="'+t+'" aria-pressed="'+sel+'"'+(s.st==='free'?'':' disabled')+'>'
+        +fmt(t)+(s.st==='busy'?'<small>'+esc(s.who.length>9?s.who.slice(0,8)+'…':s.who)+'</small>':(s.st==='past'?'<small>Passou</small>':''))+'</button>';
+    }
+    h+='</div><hr class="sep"><span class="eyebrow">Duração</span><div class="chips" role="group" aria-label="Duração">';
+    DURS.forEach(function(d){
+      var ok=state.start!=null&&d<=md;
+      h+='<button class="chip" type="button" data-act="dur" data-d="'+d+'" aria-pressed="'+(state.dur===d&&ok)+'"'+(ok?'':' disabled')+'>'+durLabel(d)+'</button>';
+    });
+    h+='</div>'+(state.start==null?'<p class="cal-hint">Escolha o horário de início para liberar as durações.</p>':'');
+    el.innerHTML=h;
+  }
+
+  function setorAtual(){return state.outro?state.custom.trim():(state.setor||'')}
+
+  function drawSetores(){
+    var el=$('setores');if(!el)return;
+    var h='<div class="areas" role="group" aria-label="Setor">';
+    SETORES.forEach(function(s){
+      h+='<button class="area" type="button" data-act="setor" data-s="'+esc(s)+'" aria-pressed="'+(!state.outro&&state.setor===s)+'" style="'+acStyle(s)+'"><span class="area-letter sm">'+letter(s)+'</span><span class="area-name">'+esc(s)+'</span></button>';
+    });
+    h+='<button class="area" type="button" data-act="outro" aria-pressed="'+state.outro+'" style="--ac:var(--muted)"><span class="area-letter sm">+</span><span class="area-name">Outro setor</span></button></div>';
+    if(state.outro)h+='<div class="field"><label for="custom">Nome do setor</label><input id="custom" type="text" maxlength="40" autocomplete="off" placeholder="Digite o setor"></div>';
+    el.innerHTML=h;
+    if(state.outro){var c=$('custom');c.value=state.custom;c.focus()}
+  }
+
+  function drawResumo(){
+    var el=$('resumo');if(!el)return;
+    var ok=state.date&&state.start!=null&&setorAtual()&&canWrite;
+    var txt;
+    if(!state.date)txt='Escolha o dia, o horário e o setor';
+    else if(state.start==null)txt=longDate(fromKey(state.date))+' · escolha o horário';
+    else txt=longDate(fromKey(state.date))+' · '+fmt(state.start)+' às '+fmt(state.start+state.dur)+' ('+durLabel(state.dur)+')'+(setorAtual()?' · '+setorAtual():'');
+    el.innerHTML='<div style="min-width:0"><span class="eyebrow">Resumo</span><strong>'+esc(txt)+'</strong>'+(canWrite?'':'<span class="err" style="display:block;margin-top:6px">Seu acesso não permite agendar. Peça acesso de colaborador ao administrador.</span>')+'</div>'
+      +'<button class="btn primary big" type="button" data-act="agendar"'+(ok?'':' disabled')+'>Agendar sala</button>';
+  }
+
+  function showErr(m){var e=$('book-err');if(!e)return;e.textContent=m||'';e.hidden=!m}
+
+  async function agendar(){
+    showErr('');
+    var setor=setorAtual();
+    if(!state.date||state.start==null||!setor)return;
+    var seg={start:state.start,end:state.start+state.dur};
+    if(onDay(state.date).some(function(x){return overlap(seg,x)})){
+      state.start=null;drawTimes();drawResumo();
+      showErr('Esse horário acabou de ser ocupado por outra reunião. Escolha outro horário.');return;
+    }
+    if(state.date===key(new Date())&&seg.start<minNow()){showErr('Esse horário já passou. Escolha um horário a partir de agora.');return}
+    var data={date:state.date,start:seg.start,end:seg.end,setor:setor,assunto:state.assunto.trim(),createdAt:new Date().toISOString()};
+    var btn=app.querySelector('[data-act="agendar"]');if(btn)btn.disabled=true;
+    try{
+      if(db){await db.collection('reunioes').add(data)}
+      else{data.id='local-'+(++localSeq);meetings.push(data)}
+      toast('Sala agendada para '+fmt(seg.start)+' às '+fmt(seg.end));
+      state.start=null;state.dur=60;state.assunto='';state.setor=null;state.outro=false;state.custom='';
+      state.openId=null;
+      go('status');
+    }catch(e){
+      if(btn)btn.disabled=false;
+      var c=e&&e.code;
+      showErr((c==='invalid_argument'||c==='permission-denied')?'Seu acesso não permite agendar. Peça acesso de colaborador ao administrador.':((c==='quota_exceeded'||c==='resource-exhausted')?'O limite de reuniões salvas foi atingido. Cancele reuniões antigas e tente de novo.':'Não foi possível salvar agora. Tente de novo em instantes.'));
+    }
+  }
+
+  async function cancelar(id){
+    try{
+      if(db&&id.indexOf('local-')!==0)await db.doc('reunioes/'+id).delete();
+      else meetings=meetings.filter(function(x){return x.id!==id});
+      state.confirmId=null;state.openId=null;
+      toast('Reunião cancelada');
+      renderStatus();
+    }catch(e){state.confirmId=null;toast('Não foi possível cancelar. Seu acesso pode não permitir.');renderStatus()}
+  }
+
+  /* ---------- eventos ---------- */
+  app.addEventListener('click',function(e){
+    var b=e.target.closest('[data-act]');if(!b)return;
+    var a=b.dataset.act;
+    if(a==='goto-book')return go('book');
+    if(a==='toggle'){state.openId=state.openId===b.dataset.id?null:b.dataset.id;state.confirmId=null;return renderStatus()}
+    if(a==='del'){state.confirmId=b.dataset.id;return renderStatus()}
+    if(a==='del-no'){state.confirmId=null;return renderStatus()}
+    if(a==='del-yes')return cancelar(b.dataset.id);
+    if(a==='prev'||a==='next'){var d=new Date(state.y,state.m+(a==='next'?1:-1),1);state.y=d.getFullYear();state.m=d.getMonth();return drawCal()}
+    if(a==='day'){state.date=b.dataset.k;state.start=null;state.dur=60;showErr('');drawCal();drawTimes();return drawResumo()}
+    if(a==='slot'){
+      state.start=+b.dataset.t;
+      var md=maxDur(state.date,state.start);
+      if(state.dur>md){state.dur=DURS.filter(function(x){return x<=md}).pop()||STEP}
+      showErr('');drawTimes();return drawResumo();
+    }
+    if(a==='dur'){state.dur=+b.dataset.d;drawTimes();return drawResumo()}
+    if(a==='setor'){state.outro=false;state.setor=b.dataset.s;drawSetores();return drawResumo()}
+    if(a==='outro'){state.outro=true;drawSetores();return drawResumo()}
+    if(a==='agendar')return agendar();
+  });
+  app.addEventListener('input',function(e){
+    if(e.target.id==='assunto')state.assunto=e.target.value;
+    if(e.target.id==='custom'){state.custom=e.target.value;drawResumo()}
+  });
+
+  /* ---------- dados ---------- */
+  function refresh(){
+    if(state.screen==='status')return renderStatus();
+    if(state.start!=null&&state.date&&slotInfo(state.date,state.start).st!=='free'){state.start=null}
+    if(state.start!=null&&state.dur>maxDur(state.date,state.start)){state.dur=DURS.filter(function(x){return x<=maxDur(state.date,state.start)}).pop()||STEP}
+    drawCal();drawTimes();drawResumo();
+  }
+
+  function aviso(t){$('aviso').textContent=t||'';$('aviso').hidden=!t}
+
+  function startData(){
+    var cfg=window.FIREBASE_CONFIG||{};
+    var pronto=window.firebase&&cfg.apiKey&&cfg.projectId&&String(cfg.apiKey).indexOf('COLE_')!==0;
+    if(!pronto){
+      localMode=true;
+      aviso(window.firebase?'Firebase ainda não configurado. Preencha FIREBASE_CONFIG no início do index.html. Por enquanto as reuniões só ficam nesta tela.':'Não foi possível carregar o Firebase. Verifique a conexão com a internet.');
+      return;
+    }
+    try{
+      firebase.initializeApp(cfg);
+      db=firebase.firestore();
+      db.collection('reunioes').onSnapshot(function(snap){
+        meetings=snap.docs.map(function(d){var o=d.data()||{};o.id=d.id;return o}).filter(function(x){return x.date&&typeof x.start==='number'&&typeof x.end==='number'});
+        aviso('');
+        refresh();
+      },function(err){
+        aviso(err&&err.code==='permission-denied'?'Sem permissão para ler a agenda. Confira as regras do Firestore.':'A conexão com a agenda foi interrompida. Recarregue a página.');
+      });
+    }catch(e){aviso('Configuração do Firebase inválida. Confira o FIREBASE_CONFIG.')}
+  }
+
+  $('data-hoje').textContent=longDate(new Date());
+  go('status');
+  startData();
+  setInterval(function(){if(state.screen==='status')renderStatus()},30000);
+})();
+</script>
+</body>
+</html>
