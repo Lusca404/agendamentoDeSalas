@@ -74,7 +74,8 @@ button,input{font-family:inherit}
 .titulo h1 .n{color:var(--navy)}
 .titulo p{margin:6px 0 0;font:600 14px var(--body);letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
 .titulo p b{color:var(--blue)}
-.top::after{content:"";flex:0 1 160px}
+.user-box{flex:0 0 auto;display:flex;align-items:center;justify-content:flex-end;gap:10px;min-width:160px}
+.user-name{max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:700 14px var(--body)}
 
 /* Gaveta */
 .scrim{position:fixed;inset:0;z-index:30;background:rgba(0,10,25,.55)}
@@ -203,15 +204,32 @@ h2.sec{margin:0 0 12px;font:400 16px/1.2 var(--display);text-transform:uppercase
 .resumo strong{display:block;font:400 18px/1.25 var(--display);text-transform:uppercase;text-wrap:balance}
 .resumo .btn{flex:0 1 320px}
 
+
+/* Login */
+.modal{position:fixed;inset:0;z-index:50;display:grid;place-items:center;overflow-y:auto;background:rgba(0,10,25,.62);
+  padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.auth-card{width:min(460px,100%);background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:18px;padding:24px}
+.auth-card h2{margin:0;font:400 24px/1.1 var(--display);text-transform:uppercase}
+.auth-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.auth-x{appearance:none;cursor:pointer;flex:none;width:44px;height:44px;border-radius:12px;border:1px solid var(--line);background:var(--surface-2);color:var(--fg);font-size:18px}
+.tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:16px;padding:4px;background:var(--bg);border:1px solid var(--hair);border-radius:12px}
+.tab{appearance:none;cursor:pointer;min-height:44px;border:0;border-radius:9px;background:transparent;color:var(--fg);font:400 13px var(--display);letter-spacing:.02em;text-transform:uppercase}
+.tab[aria-selected="true"]{background:var(--accent);color:var(--on-accent)}
+.hint{margin:12px 0 0;font-size:13px;color:var(--muted)}
+.hint.ok{color:var(--ok);font-weight:700}
+.auth-card .btn.primary{width:100%;margin-top:18px}
+.auth-row{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:40;max-width:min(92vw,520px);padding:12px 18px;border-radius:10px;background:var(--fg);color:var(--bg);font-weight:700;text-align:center}
 
 @media (max-width:1000px){
   .status,.book{grid-template-columns:minmax(0,1fr)}
-  .top::after{display:none}
+  .user-box{min-width:0}
 }
 @media (max-width:560px){
   .logo b{font-size:30px}
-  .titulo{flex-basis:100%;text-align:left}
+  .titulo{flex-basis:100%;text-align:left;order:3}
+  .user-box{order:2;margin-left:auto}
   .mt-head{grid-template-columns:auto minmax(0,1fr)}
   .mt-side{grid-column:1 / -1;flex-direction:row;align-items:center}
   .slots{grid-template-columns:repeat(auto-fill,minmax(76px,1fr))}
@@ -236,6 +254,7 @@ h2.sec{margin:0 0 12px;font:400 16px/1.2 var(--display);text-transform:uppercase
       <h1>Sala de <span class="n">Reunião</span></h1>
       <p><b id="tela-nome"></b> · <span id="data-hoje"></span></p>
     </div>
+    <div id="user-box" class="user-box"></div>
   </header>
   <div id="aviso" class="aviso" hidden></div>
   <main id="app"></main>
@@ -251,9 +270,11 @@ h2.sec{margin:0 0 12px;font:400 16px/1.2 var(--display);text-transform:uppercase
   <button class="nav-item" type="button" data-go="book">Marcar reunião</button>
 </nav>
 <div id="toast" class="toast" role="status" hidden></div>
+<div id="auth" class="modal" hidden><div id="auth-card" class="auth-card" role="dialog" aria-modal="true" aria-labelledby="auth-title"></div></div>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script>
 /* ============================================================
    CONFIGURAÇÃO DO FIREBASE
@@ -261,13 +282,13 @@ h2.sec{margin:0 0 12px;font:400 16px/1.2 var(--display);text-transform:uppercase
    Console do Firebase > Configurações do projeto > Seus aplicativos > Configuração do SDK
    ============================================================ */
 var FIREBASE_CONFIG = {
-  apiKey: "AIzaSyBhDYVzjpJv8rpjCJ54xQMnCGRgNtKxUtk",
-  authDomain: "agendamento-sala-2b846.firebaseapp.com",
-  projectId: "agendamento-sala-2b846",
-  storageBucket: "agendamento-sala-2b846.firebasestorage.app",
-  messagingSenderId: "60044005638",
-  appId: "1:60044005638:web:66ed5873180261adfe4e87",
-  measurementId: "G-E0KYYDRQL9"
+  apiKey: "AIzaSyAQOYnA4fXz2eHhaMuXJU5vs8bASQOiul0",
+  authDomain: "filagps.firebaseapp.com",
+  projectId: "filagps",
+  storageBucket: "filagps.firebasestorage.app",
+  messagingSenderId: "457110630051",
+  appId: "1:457110630051:web:4c2eeb0fc39c7179641916",
+  measurementId: "G-GFMQDTD4WZ"
 };
 </script>
 <script>
@@ -306,6 +327,7 @@ var FIREBASE_CONFIG = {
   /* ---------- navegação ---------- */
   var NOMES={status:'Sala agora',book:'Marcar reunião'};
   function go(s){
+    if(s==='book'&&auth&&!canBook()){closeDrawer();openAuth(user?'verify':'login','book');return}
     state.screen=s;state.confirmId=null;
     closeDrawer();
     $('tela-nome').textContent=NOMES[s];
@@ -347,6 +369,7 @@ var FIREBASE_CONFIG = {
       h='<section class="now occ" aria-live="polite"><div class="lbl">Sala de reunião agora</div>'
        +'<div class="big"><i></i>Ocupada</div>'
        +'<div class="nm">'+esc(cur.setor)+'</div>'
+       +(cur.nome?'<div class="ar">Reservada por '+esc(cur.nome)+'</div>':'')
        +'<div class="ar">'+fmt(cur.start)+' às '+fmt(cur.end)+' · '+durLabel(cur.end-cur.start)+' · termina em '+durLabel(cur.end-m)+'</div>';
     }else if(inHours){
       var nx=list.filter(function(x){return x.start>m})[0];
@@ -380,14 +403,14 @@ var FIREBASE_CONFIG = {
       var done=x.date===k&&x.end<=m, live=x.date===k&&x.start<=m&&m<x.end, open=state.openId===x.id;
       h+='<li class="mt'+(done?' done':'')+'"><button class="mt-head" type="button" data-act="toggle" data-id="'+esc(x.id)+'" aria-expanded="'+open+'">'
         +'<span class="mt-time"><b>'+fmt(x.start)+'</b><i>'+fmt(x.end)+'</i></span>'
-        +'<span class="mt-main"><span class="area-letter sm" style="'+acStyle(x.setor)+'">'+letter(x.setor)+'</span><span><strong>'+esc(x.setor)+'</strong><span class="sub">Duração de '+durLabel(x.end-x.start)+'</span></span></span>'
+        +'<span class="mt-main"><span class="area-letter sm" style="'+acStyle(x.setor)+'">'+letter(x.setor)+'</span><span><strong>'+esc(x.setor)+'</strong><span class="sub">'+(x.nome?'Reservada por '+esc(x.nome):'Duração de '+durLabel(x.end-x.start))+'</span></span></span>'
         +'<span class="mt-side">'+(live?'<span class="badge">Em andamento</span>':(done?'<span class="badge dur">Encerrada</span>':''))+'<span class="badge dur">'+durLabel(x.end-x.start)+'</span></span></button>';
       if(open){
-        h+='<div class="mt-detail"><dl><dt>Setor</dt><dd>'+esc(x.setor)+'</dd><dt>Horário</dt><dd>'+fmt(x.start)+' às '+fmt(x.end)+' ('+durLabel(x.end-x.start)+')</dd>'
+        h+='<div class="mt-detail"><dl><dt>Setor</dt><dd>'+esc(x.setor)+'</dd>'+(x.nome?'<dt>Reservada por</dt><dd>'+esc(x.nome)+'</dd>':'')+'<dt>Horário</dt><dd>'+fmt(x.start)+' às '+fmt(x.end)+' ('+durLabel(x.end-x.start)+')</dd>'
           +(x.assunto?'<dt>Assunto</dt><dd>'+esc(x.assunto)+'</dd>':'')
           +'<dt>Agendada em</dt><dd>'+esc(created(x.createdAt))+'</dd></dl>'
           +'<div class="mt-actions">'
-          +(state.confirmId===x.id
+          +(!mine(x)?'<span class="sub">Só quem reservou pode cancelar.</span>':state.confirmId===x.id
             ?'<span class="sub">Cancelar esta reunião?</span><button class="btn sm danger" type="button" data-act="del-yes" data-id="'+esc(x.id)+'">Sim, cancelar</button><button class="btn sm" type="button" data-act="del-no">Manter</button>'
             :'<button class="btn sm danger" type="button" data-act="del" data-id="'+esc(x.id)+'">Cancelar reunião</button>')
           +'</div></div>';
@@ -486,7 +509,7 @@ var FIREBASE_CONFIG = {
     if(!state.date)txt='Escolha o dia, o horário e o setor';
     else if(state.start==null)txt=longDate(fromKey(state.date))+' · escolha o horário';
     else txt=longDate(fromKey(state.date))+' · '+fmt(state.start)+' às '+fmt(state.start+state.dur)+' ('+durLabel(state.dur)+')'+(setorAtual()?' · '+setorAtual():'');
-    el.innerHTML='<div style="min-width:0"><span class="eyebrow">Resumo</span><strong>'+esc(txt)+'</strong>'+(canWrite?'':'<span class="err" style="display:block;margin-top:6px">Seu acesso não permite agendar. Peça acesso de colaborador ao administrador.</span>')+'</div>'
+    el.innerHTML='<div style="min-width:0"><span class="eyebrow">Resumo</span><strong>'+esc(txt)+'</strong>'+(user?'<span class="sub" style="display:block;margin-top:4px">Reservando como '+esc(userName())+'</span>':'')+(canWrite?'':'<span class="err" style="display:block;margin-top:6px">Seu acesso não permite agendar. Peça acesso de colaborador ao administrador.</span>')+'</div>'
       +'<button class="btn primary big" type="button" data-act="agendar"'+(ok?'':' disabled')+'>Agendar sala</button>';
   }
 
@@ -494,6 +517,7 @@ var FIREBASE_CONFIG = {
 
   async function agendar(){
     showErr('');
+    if(auth&&!canBook()){openAuth(user?'verify':'login','book');return}
     var setor=setorAtual();
     if(!state.date||state.start==null||!setor)return;
     var seg={start:state.start,end:state.start+state.dur};
@@ -502,7 +526,7 @@ var FIREBASE_CONFIG = {
       showErr('Esse horário acabou de ser ocupado por outra reunião. Escolha outro horário.');return;
     }
     if(state.date===key(new Date())&&seg.start<minNow()){showErr('Esse horário já passou. Escolha um horário a partir de agora.');return}
-    var data={date:state.date,start:seg.start,end:seg.end,setor:setor,assunto:state.assunto.trim(),createdAt:new Date().toISOString()};
+    var data={date:state.date,start:seg.start,end:seg.end,setor:setor,assunto:state.assunto.trim(),createdAt:new Date().toISOString(),uid:user?user.uid:'local',nome:user?userName():'Demonstração'};
     var btn=app.querySelector('[data-act="agendar"]');if(btn)btn.disabled=true;
     try{
       if(db){await db.collection('reunioes').add(data)}
@@ -514,7 +538,7 @@ var FIREBASE_CONFIG = {
     }catch(e){
       if(btn)btn.disabled=false;
       var c=e&&e.code;
-      showErr((c==='invalid_argument'||c==='permission-denied')?'Seu acesso não permite agendar. Peça acesso de colaborador ao administrador.':((c==='quota_exceeded'||c==='resource-exhausted')?'O limite de reuniões salvas foi atingido. Cancele reuniões antigas e tente de novo.':'Não foi possível salvar agora. Tente de novo em instantes.'));
+      showErr((c==='invalid_argument'||c==='permission-denied')?'Não foi possível agendar. Saia e entre de novo com seu e-mail @gpssa.com.br confirmado.':((c==='quota_exceeded'||c==='resource-exhausted')?'O limite de reuniões salvas foi atingido. Cancele reuniões antigas e tente de novo.':'Não foi possível salvar agora. Tente de novo em instantes.'));
     }
   }
 
@@ -525,7 +549,7 @@ var FIREBASE_CONFIG = {
       state.confirmId=null;state.openId=null;
       toast('Reunião cancelada');
       renderStatus();
-    }catch(e){state.confirmId=null;toast('Não foi possível cancelar. Seu acesso pode não permitir.');renderStatus()}
+    }catch(e){state.confirmId=null;toast('Não foi possível cancelar. Só quem reservou pode cancelar.');renderStatus()}
   }
 
   /* ---------- eventos ---------- */
@@ -563,6 +587,142 @@ var FIREBASE_CONFIG = {
     drawCal();drawTimes();drawResumo();
   }
 
+  /* ---------- login (Firebase Authentication) ---------- */
+  var auth=null,user=null,authMode='login',pendingGo=null,busy=false;
+  var DOMINIO='@gpssa.com.br';
+  function isCorp(e){return /^[^\s@]+@gpssa\.com\.br$/i.test(String(e||'').trim())}
+  function canBook(){return !!(user&&user.emailVerified&&isCorp(user.email))}
+  function userName(){return user?(user.displayName||String(user.email||'').split('@')[0]):''}
+  function mine(x){return auth?!!(user&&x.uid&&x.uid===user.uid):true}
+
+  function renderUserBox(){
+    var b=$('user-box');if(!b)return;
+    if(!auth){b.innerHTML='';return}
+    b.innerHTML=user
+      ?'<span class="user-name" title="'+esc(user.email)+'">'+esc(userName())+'</span><button class="btn sm" type="button" data-auth="logout">Sair</button>'
+      :'<button class="btn sm" type="button" data-auth="open">Entrar</button>';
+  }
+
+  function xBtn(){return '<button class="auth-x" type="button" data-auth="close" aria-label="Fechar">✕</button>'}
+  function renderAuth(){
+    var h;
+    if(authMode==='verify'){
+      h='<div class="auth-top"><div><span class="eyebrow">Grupo GPS</span><h2 id="auth-title">Confirme seu e-mail</h2></div>'+xBtn()+'</div>'
+       +'<p class="hint">Enviamos um link de confirmação para <b>'+esc(user?user.email:'')+'</b>. Abra o e-mail, clique no link e volte aqui. Olhe também a caixa de spam.</p>'
+       +'<p id="auth-err" class="err" role="alert" hidden></p><p id="auth-info" class="hint ok" role="status" hidden></p>'
+       +'<button class="btn primary" type="button" data-auth="verified">Já confirmei</button>'
+       +'<div class="auth-row"><button class="btn sm" type="button" data-auth="resend">Reenviar e-mail</button><button class="btn sm" type="button" data-auth="logout">Sair</button></div>';
+    }else{
+      var su=authMode==='signup';
+      h='<div class="auth-top"><div><span class="eyebrow">Grupo GPS</span><h2 id="auth-title">'+(su?'Criar conta':'Entrar')+'</h2></div>'+xBtn()+'</div>'
+       +'<div class="tabs" role="tablist"><button class="tab" type="button" role="tab" aria-selected="'+(!su)+'" data-auth="tab-login">Entrar</button><button class="tab" type="button" role="tab" aria-selected="'+su+'" data-auth="tab-signup">Criar conta</button></div>'
+       +'<p class="hint">'+(su?'Use seu e-mail da empresa. Só e-mails '+DOMINIO+' podem marcar reunião.':'Entre com seu e-mail '+DOMINIO+' para marcar a reunião.')+'</p>'
+       +'<form id="auth-form" novalidate>'
+       +(su?'<div class="field"><label for="auth-nome">Nome</label><input id="auth-nome" type="text" autocomplete="name" maxlength="60" placeholder="Nome e sobrenome"></div>':'')
+       +'<div class="field"><label for="auth-email">E-mail da empresa</label><input id="auth-email" type="email" autocomplete="email" inputmode="email" placeholder="nome'+DOMINIO+'"></div>'
+       +'<div class="field"><label for="auth-senha">Senha</label><input id="auth-senha" type="password" autocomplete="'+(su?'new-password':'current-password')+'" placeholder="'+(su?'Mínimo de 6 caracteres':'Sua senha')+'"></div>'
+       +'<p id="auth-err" class="err" role="alert" hidden></p><p id="auth-info" class="hint ok" role="status" hidden></p>'
+       +'<button class="btn primary" type="submit">'+(su?'Criar conta':'Entrar')+'</button></form>'
+       +(su?'':'<div class="auth-row"><button class="btn sm" type="button" data-auth="reset">Esqueci minha senha</button></div>');
+    }
+    $('auth-card').innerHTML=h;
+  }
+  function authErr(t){var e=$('auth-err'),i=$('auth-info');if(i)i.hidden=true;if(e){e.textContent=t||'';e.hidden=!t}}
+  function authInfo(t){var e=$('auth-err'),i=$('auth-info');if(e)e.hidden=true;if(i){i.textContent=t||'';i.hidden=!t}}
+  function authMsg(err){
+    var m={
+      'auth/email-already-in-use':'Esse e-mail já tem conta. Use a aba Entrar.',
+      'auth/invalid-email':'E-mail inválido.',
+      'auth/weak-password':'Senha fraca. Use pelo menos 6 caracteres.',
+      'auth/user-not-found':'E-mail ou senha incorretos.',
+      'auth/wrong-password':'E-mail ou senha incorretos.',
+      'auth/invalid-credential':'E-mail ou senha incorretos.',
+      'auth/too-many-requests':'Muitas tentativas. Aguarde alguns minutos e tente de novo.',
+      'auth/network-request-failed':'Sem conexão. Verifique a internet e tente de novo.',
+      'auth/operation-not-allowed':'O login por e-mail e senha ainda não foi ativado no Firebase.'
+    };
+    return m[err&&err.code]||'Não foi possível concluir. Tente de novo.';
+  }
+  function openAuth(mode,pending){
+    authMode=mode;pendingGo=pending||null;renderAuth();
+    $('auth').hidden=false;
+    var f=$('auth-email')||$('auth-card').querySelector('button.primary');if(f)f.focus();
+  }
+  function closeAuth(){$('auth').hidden=true;pendingGo=null}
+  function setBusy(v){busy=v;var b=$('auth-card').querySelector('button.primary');if(b)b.disabled=v}
+
+  document.addEventListener('submit',function(e){
+    if(e.target.id!=='auth-form')return;
+    e.preventDefault();if(busy||!auth)return;
+    var su=authMode==='signup',email=$('auth-email').value.trim(),senha=$('auth-senha').value;
+    var nome=su?$('auth-nome').value.trim().replace(/\s+/g,' '):'';
+    if(su&&nome.length<2)return authErr('Informe seu nome.');
+    if(!isCorp(email))return authErr('Use seu e-mail da empresa, terminado em '+DOMINIO+'.');
+    if(!senha)return authErr('Digite a senha.');
+    if(su&&senha.length<6)return authErr('A senha precisa ter pelo menos 6 caracteres.');
+    authErr('');setBusy(true);
+    var p=su
+      ?auth.createUserWithEmailAndPassword(email,senha).then(function(c){
+          return c.user.updateProfile({displayName:nome})
+            .then(function(){return c.user.sendEmailVerification().catch(function(){})})
+            .then(function(){user=auth.currentUser;renderUserBox();authMode='verify';renderAuth()});
+        })
+      :auth.signInWithEmailAndPassword(email,senha).then(function(c){
+          if(!c.user.emailVerified){user=c.user;authMode='verify';renderAuth()}
+        });
+    p.catch(function(err){authErr(authMsg(err))}).then(function(){setBusy(false)});
+  });
+
+  document.addEventListener('click',function(e){
+    var b=e.target.closest('[data-auth]');
+    if(!b){if(e.target.id==='auth')closeAuth();return}
+    var a=b.dataset.auth;
+    if(a==='open')return openAuth('login',null);
+    if(a==='close')return closeAuth();
+    if(a==='logout'){closeAuth();if(auth)auth.signOut();return}
+    if(a==='tab-login'||a==='tab-signup'){
+      var em=$('auth-email')?$('auth-email').value:'';
+      authMode=a==='tab-signup'?'signup':'login';renderAuth();
+      if(em)$('auth-email').value=em;
+      return;
+    }
+    if(!auth)return;
+    if(a==='resend'){
+      var u=auth.currentUser;if(!u)return;
+      u.sendEmailVerification().then(function(){authInfo('E-mail reenviado. Confira a caixa de entrada e o spam.')}).catch(function(err){authErr(authMsg(err))});
+      return;
+    }
+    if(a==='verified'){
+      var cu=auth.currentUser;if(!cu)return;
+      cu.reload().then(function(){return cu.getIdToken(true)}).then(function(){
+        if(cu.emailVerified){
+          user=cu;renderUserBox();
+          var p=pendingGo;closeAuth();toast('E-mail confirmado. Olá, '+userName()+'!');
+          if(p)go(p);
+        }else authErr('Ainda não encontramos a confirmação. Clique no link do e-mail e tente de novo.');
+      }).catch(function(err){authErr(authMsg(err))});
+      return;
+    }
+    if(a==='reset'){
+      var em2=$('auth-email').value.trim();
+      if(!isCorp(em2))return authErr('Digite seu e-mail '+DOMINIO+' acima para receber o link de nova senha.');
+      auth.sendPasswordResetEmail(em2).then(function(){authInfo('Enviamos o link para criar uma nova senha. Confira a caixa de entrada e o spam.')}).catch(function(err){authErr(authMsg(err))});
+    }
+  });
+  document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!$('auth').hidden)closeAuth()});
+
+  function initAuth(){
+    auth=firebase.auth();auth.languageCode='pt-BR';
+    auth.onAuthStateChanged(function(u){
+      user=u;renderUserBox();
+      if(canBook()&&!$('auth').hidden){
+        var p=pendingGo;closeAuth();toast('Olá, '+userName()+'!');
+        if(p)go(p);
+      }else if(!u&&state.screen==='book'){go('status')}
+      if(state.screen==='status')renderStatus();else if(state.screen==='book')drawResumo();
+    });
+  }
+
   function aviso(t){$('aviso').textContent=t||'';$('aviso').hidden=!t}
 
   function startData(){
@@ -576,6 +736,7 @@ var FIREBASE_CONFIG = {
     try{
       firebase.initializeApp(cfg);
       db=firebase.firestore();
+      initAuth();
       db.collection('reunioes').onSnapshot(function(snap){
         meetings=snap.docs.map(function(d){var o=d.data()||{};o.id=d.id;return o}).filter(function(x){return x.date&&typeof x.start==='number'&&typeof x.end==='number'});
         aviso('');
