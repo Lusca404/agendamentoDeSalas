@@ -327,7 +327,7 @@ var FIREBASE_CONFIG = {
   /* ---------- navegação ---------- */
   var NOMES={status:'Sala agora',book:'Marcar reunião'};
   function go(s){
-    if(s==='book'&&auth&&!canBook()){closeDrawer();openAuth(user?'verify':'login','book');return}
+    if(s==='book'&&auth&&!canBook()){closeDrawer();openAuth('login','book');return}
     state.screen=s;state.confirmId=null;
     closeDrawer();
     $('tela-nome').textContent=NOMES[s];
@@ -517,7 +517,7 @@ var FIREBASE_CONFIG = {
 
   async function agendar(){
     showErr('');
-    if(auth&&!canBook()){openAuth(user?'verify':'login','book');return}
+    if(auth&&!canBook()){openAuth('login','book');return}
     var setor=setorAtual();
     if(!state.date||state.start==null||!setor)return;
     var seg={start:state.start,end:state.start+state.dur};
@@ -538,7 +538,7 @@ var FIREBASE_CONFIG = {
     }catch(e){
       if(btn)btn.disabled=false;
       var c=e&&e.code;
-      showErr((c==='invalid_argument'||c==='permission-denied')?'Não foi possível agendar. Saia e entre de novo com seu e-mail @gpssa.com.br confirmado.':((c==='quota_exceeded'||c==='resource-exhausted')?'O limite de reuniões salvas foi atingido. Cancele reuniões antigas e tente de novo.':'Não foi possível salvar agora. Tente de novo em instantes.'));
+      showErr((c==='invalid_argument'||c==='permission-denied')?'Não foi possível agendar. Saia e entre de novo com seu e-mail @gpssa.com.br.':((c==='quota_exceeded'||c==='resource-exhausted')?'O limite de reuniões salvas foi atingido. Cancele reuniões antigas e tente de novo.':'Não foi possível salvar agora. Tente de novo em instantes.'));
     }
   }
 
@@ -588,10 +588,10 @@ var FIREBASE_CONFIG = {
   }
 
   /* ---------- login (Firebase Authentication) ---------- */
-  var auth=null,user=null,authMode='login',pendingGo=null,busy=false;
+  var auth=null,user=null,authMode='login',pendingGo=null,busy=false,signingUp=false;
   var DOMINIO='@gpssa.com.br';
   function isCorp(e){return /^[^\s@]+@gpssa\.com\.br$/i.test(String(e||'').trim())}
-  function canBook(){return !!(user&&user.emailVerified&&isCorp(user.email))}
+  function canBook(){return !!(user&&isCorp(user.email))}
   function userName(){return user?(user.displayName||String(user.email||'').split('@')[0]):''}
   function mine(x){return auth?!!(user&&x.uid&&x.uid===user.uid):true}
 
@@ -606,13 +606,7 @@ var FIREBASE_CONFIG = {
   function xBtn(){return '<button class="auth-x" type="button" data-auth="close" aria-label="Fechar">✕</button>'}
   function renderAuth(){
     var h;
-    if(authMode==='verify'){
-      h='<div class="auth-top"><div><span class="eyebrow">Grupo GPS</span><h2 id="auth-title">Confirme seu e-mail</h2></div>'+xBtn()+'</div>'
-       +'<p class="hint">Enviamos um link de confirmação para <b>'+esc(user?user.email:'')+'</b>. Abra o e-mail, clique no link e volte aqui. Olhe também a caixa de spam.</p>'
-       +'<p id="auth-err" class="err" role="alert" hidden></p><p id="auth-info" class="hint ok" role="status" hidden></p>'
-       +'<button class="btn primary" type="button" data-auth="verified">Já confirmei</button>'
-       +'<div class="auth-row"><button class="btn sm" type="button" data-auth="resend">Reenviar e-mail</button><button class="btn sm" type="button" data-auth="logout">Sair</button></div>';
-    }else{
+    {
       var su=authMode==='signup';
       h='<div class="auth-top"><div><span class="eyebrow">Grupo GPS</span><h2 id="auth-title">'+(su?'Criar conta':'Entrar')+'</h2></div>'+xBtn()+'</div>'
        +'<div class="tabs" role="tablist"><button class="tab" type="button" role="tab" aria-selected="'+(!su)+'" data-auth="tab-login">Entrar</button><button class="tab" type="button" role="tab" aria-selected="'+su+'" data-auth="tab-signup">Criar conta</button></div>'
@@ -663,14 +657,15 @@ var FIREBASE_CONFIG = {
     authErr('');setBusy(true);
     var p=su
       ?auth.createUserWithEmailAndPassword(email,senha).then(function(c){
-          return c.user.updateProfile({displayName:nome})
-            .then(function(){return c.user.sendEmailVerification().catch(function(){})})
-            .then(function(){user=auth.currentUser;renderUserBox();authMode='verify';renderAuth()});
+          return c.user.updateProfile({displayName:nome}).catch(function(){}).then(function(){
+            signingUp=false;user=auth.currentUser;renderUserBox();
+            var pg=pendingGo;closeAuth();toast('Conta criada. Olá, '+userName()+'!');
+            if(pg)go(pg);
+          });
         })
-      :auth.signInWithEmailAndPassword(email,senha).then(function(c){
-          if(!c.user.emailVerified){user=c.user;authMode='verify';renderAuth()}
-        });
-    p.catch(function(err){authErr(authMsg(err))}).then(function(){setBusy(false)});
+      :auth.signInWithEmailAndPassword(email,senha);
+    if(su)signingUp=true;
+    p.catch(function(err){signingUp=false;authErr(authMsg(err))}).then(function(){setBusy(false)});
   });
 
   document.addEventListener('click',function(e){
@@ -687,22 +682,6 @@ var FIREBASE_CONFIG = {
       return;
     }
     if(!auth)return;
-    if(a==='resend'){
-      var u=auth.currentUser;if(!u)return;
-      u.sendEmailVerification().then(function(){authInfo('E-mail reenviado. Confira a caixa de entrada e o spam.')}).catch(function(err){authErr(authMsg(err))});
-      return;
-    }
-    if(a==='verified'){
-      var cu=auth.currentUser;if(!cu)return;
-      cu.reload().then(function(){return cu.getIdToken(true)}).then(function(){
-        if(cu.emailVerified){
-          user=cu;renderUserBox();
-          var p=pendingGo;closeAuth();toast('E-mail confirmado. Olá, '+userName()+'!');
-          if(p)go(p);
-        }else authErr('Ainda não encontramos a confirmação. Clique no link do e-mail e tente de novo.');
-      }).catch(function(err){authErr(authMsg(err))});
-      return;
-    }
     if(a==='reset'){
       var em2=$('auth-email').value.trim();
       if(!isCorp(em2))return authErr('Digite seu e-mail '+DOMINIO+' acima para receber o link de nova senha.');
@@ -715,6 +694,7 @@ var FIREBASE_CONFIG = {
     auth=firebase.auth();auth.languageCode='pt-BR';
     auth.onAuthStateChanged(function(u){
       user=u;renderUserBox();
+      if(signingUp)return;
       if(canBook()&&!$('auth').hidden){
         var p=pendingGo;closeAuth();toast('Olá, '+userName()+'!');
         if(p)go(p);
